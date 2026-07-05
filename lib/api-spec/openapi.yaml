@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Workly Game Core API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User management
+  - name: votes
+    description: Voting system
+  - name: comments
+    description: Comments system
 paths:
   /healthz:
     get:
@@ -24,6 +30,153 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users:
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create or retrieve a user by username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "200":
+          description: User found or created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid username
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{username}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Check if a username exists
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /votes:
+    post:
+      operationId: castVote
+      tags: [votes]
+      summary: Cast a vote for or against the project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoteInput"
+      responses:
+        "200":
+          description: Vote recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoteResult"
+        "429":
+          description: Too many requests - must wait 1 hour between votes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoteCooldown"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /votes/stats:
+    get:
+      operationId: getVoteStats
+      tags: [votes]
+      summary: Get vote statistics
+      responses:
+        "200":
+          description: Vote statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoteStats"
+
+  /votes/status:
+    get:
+      operationId: getVoteStatus
+      tags: [votes]
+      summary: Check if current IP can vote (cooldown status)
+      responses:
+        "200":
+          description: Vote status for current IP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoteStatus"
+
+  /comments:
+    get:
+      operationId: listComments
+      tags: [comments]
+      summary: List all comments
+      responses:
+        "200":
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+
+    post:
+      operationId: createComment
+      tags: [comments]
+      summary: Post a new comment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentInput"
+      responses:
+        "201":
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +187,145 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - createdAt
+
+    UserInput:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 2
+          maxLength: 30
+      required:
+        - username
+
+    VoteInput:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [up, down]
+        username:
+          type: string
+      required:
+        - type
+        - username
+
+    VoteResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        stats:
+          $ref: "#/components/schemas/VoteStats"
+        nextVoteAt:
+          type: string
+          format: date-time
+      required:
+        - success
+        - message
+        - stats
+        - nextVoteAt
+
+    VoteCooldown:
+      type: object
+      properties:
+        error:
+          type: string
+        nextVoteAt:
+          type: string
+          format: date-time
+        secondsRemaining:
+          type: integer
+      required:
+        - error
+        - nextVoteAt
+        - secondsRemaining
+
+    VoteStats:
+      type: object
+      properties:
+        upvotes:
+          type: integer
+        downvotes:
+          type: integer
+        total:
+          type: integer
+        percentage:
+          type: number
+      required:
+        - upvotes
+        - downvotes
+        - total
+        - percentage
+
+    VoteStatus:
+      type: object
+      properties:
+        canVote:
+          type: boolean
+        nextVoteAt:
+          type: ["string", "null"]
+          format: date-time
+        secondsRemaining:
+          type: integer
+        lastVoteType:
+          type: ["string", "null"]
+      required:
+        - canVote
+        - nextVoteAt
+        - secondsRemaining
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - content
+        - createdAt
+
+    CommentInput:
+      type: object
+      properties:
+        username:
+          type: string
+        content:
+          type: string
+          minLength: 1
+          maxLength: 500
+      required:
+        - username
+        - content

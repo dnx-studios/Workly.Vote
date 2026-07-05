@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  --font-sans: var(--app-font-sans);
+  --font-serif: var(--app-font-serif);
+  --font-mono: var(--app-font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root, .dark {
+  --background: 226 47% 5%;
+  --foreground: 0 0% 98%;
+  
+  --card: 226 47% 7%;
+  --card-foreground: 0 0% 98%;
+  --card-border: 226 47% 15%;
+  
+  --popover: 226 47% 5%;
+  --popover-foreground: 0 0% 98%;
+  --popover-border: 226 47% 15%;
+  
+  --primary: 359 83% 52%;
+  --primary-foreground: 0 0% 98%;
+  
+  --secondary: 226 47% 12%;
+  --secondary-foreground: 0 0% 98%;
+  
+  --muted: 226 47% 12%;
+  --muted-foreground: 215 20.2% 65.1%;
+  
+  --accent: 359 83% 52%;
+  --accent-foreground: 0 0% 98%;
+  
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  
+  --border: 226 47% 15%;
+  --input: 226 47% 15%;
+  --ring: 359 83% 52%;
+  
+  --app-font-sans: 'Inter', sans-serif;
+  --app-font-serif: 'Orbitron', sans-serif;
+  --app-font-mono: Menlo, monospace;
+  
+  --radius: 0.5rem;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--app-font-sans);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 32, 36, 0.5);
+}
+
+/* Background animations */
+@keyframes orb-1 {
+  0%, 100% { transform: translateX(-50%) translateY(0px) scale(1); }
+  33%       { transform: translateX(-48%) translateY(-40px) scale(1.05); }
+  66%       { transform: translateX(-52%) translateY(20px) scale(0.97); }
+}
+@keyframes orb-2 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50%       { transform: translateY(-60px) translateX(-30px); }
+}
+@keyframes orb-3 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50%       { transform: translateY(40px) translateX(30px); }
+}
+@keyframes particle-float {
+  0%, 100% { transform: translateY(0px); opacity: 0.15; }
+  50%       { transform: translateY(-18px); opacity: 0.35; }
+}
+
+.animate-orb-1 { animation: orb-1 14s ease-in-out infinite; }
+.animate-orb-2 { animation: orb-2 18s ease-in-out infinite; }
+.animate-orb-3 { animation: orb-3 12s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-orb-1, .animate-orb-2, .animate-orb-3 { animation: none; }
+  [style*="particle-float"] { animation: none !important; }
+}
