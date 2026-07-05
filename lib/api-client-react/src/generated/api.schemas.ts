@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Workly Game Core API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
@@ -11,6 +11,10 @@ export interface HealthStatus {
 
 export interface ErrorResponse {
   error: string;
+}
+
+export interface SuccessResponse {
+  success: boolean;
 }
 
 export interface User {
@@ -73,6 +77,12 @@ export interface Comment {
   id: number;
   username: string;
   content: string;
+  likes: number;
+  dislikes: number;
+  hasStar: boolean;
+  hasHeart: boolean;
+  /** @nullable */
+  userReaction?: string | null;
   createdAt: string;
 }
 
@@ -84,4 +94,48 @@ export interface CommentInput {
      */
   content: string;
 }
+
+export type CommentReactionInputType = typeof CommentReactionInputType[keyof typeof CommentReactionInputType];
+
+
+export const CommentReactionInputType = {
+  like: 'like',
+  dislike: 'dislike',
+} as const;
+
+export interface CommentReactionInput {
+  username: string;
+  type: CommentReactionInputType;
+}
+
+export interface ReactionResult {
+  action: string;
+  /** @nullable */
+  type?: string | null;
+}
+
+export interface AdminVote {
+  id: number;
+  ipAddress: string;
+  username: string;
+  voteType: string;
+  createdAt: string;
+}
+
+export interface AdminAction {
+  adminUsername: string;
+}
+
+export interface AdminToggleResult {
+  success: boolean;
+  hasStar?: boolean;
+  hasHeart?: boolean;
+}
+
+export type ListCommentsParams = {
+/**
+ * Current user's username to include their own reaction
+ */
+username?: string;
+};
 

@@ -6,10 +6,6 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface UserInput {
-  /**
-     * @minLength 2
-     * @maxLength 30
-     */
-  username: string;
+export interface AdminAction {
+  adminUsername: string;
 }

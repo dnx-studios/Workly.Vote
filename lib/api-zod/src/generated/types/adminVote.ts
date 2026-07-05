@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface UserInput {
-  /**
-     * @minLength 2
-     * @maxLength 30
-     */
+export interface AdminVote {
+  id: number;
+  ipAddress: string;
   username: string;
+  voteType: string;
+  createdAt: Date;
 }

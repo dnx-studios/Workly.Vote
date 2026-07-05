@@ -6,10 +6,9 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface UserInput {
-  /**
-     * @minLength 2
-     * @maxLength 30
-     */
-  username: string;
-}
+export type ListCommentsParams = {
+/**
+ * Current user's username to include their own reaction
+ */
+username?: string;
+};

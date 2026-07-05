@@ -3,13 +3,21 @@
  * Do not edit manually.
  * Api
  * Workly Game Core API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
+export * from './adminAction';
+export * from './adminToggleResult';
+export * from './adminVote';
 export * from './comment';
 export * from './commentInput';
+export * from './commentReactionInput';
+export * from './commentReactionInputType';
 export * from './errorResponse';
 export * from './healthStatus';
+export * from './listCommentsParams';
+export * from './reactionResult';
+export * from './successResponse';
 export * from './user';
 export * from './userInput';
 export * from './voteCooldown';

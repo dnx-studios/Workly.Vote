@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
+  version: 0.2.0
   description: Workly Game Core API
 servers:
   - url: /api
@@ -16,13 +16,14 @@ tags:
     description: Voting system
   - name: comments
     description: Comments system
+  - name: admin
+    description: Admin operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -35,7 +36,7 @@ paths:
     post:
       operationId: createUser
       tags: [users]
-      summary: Create or retrieve a user by username
+      summary: Register a new unique username
       requestBody:
         required: true
         content:
@@ -44,13 +45,19 @@ paths:
               $ref: "#/components/schemas/UserInput"
       responses:
         "200":
-          description: User found or created
+          description: User created
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
         "400":
-          description: Invalid username
+          description: Invalid username format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Username already taken or reserved
           content:
             application/json:
               schema:
@@ -100,7 +107,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/VoteResult"
         "429":
-          description: Too many requests - must wait 1 hour between votes
+          description: Cooldown active
           content:
             application/json:
               schema:
@@ -129,7 +136,7 @@ paths:
     get:
       operationId: getVoteStatus
       tags: [votes]
-      summary: Check if current IP can vote (cooldown status)
+      summary: Check if current IP can vote
       responses:
         "200":
           description: Vote status for current IP
@@ -142,7 +149,14 @@ paths:
     get:
       operationId: listComments
       tags: [comments]
-      summary: List all comments
+      summary: List all comments with reaction counts
+      parameters:
+        - name: username
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Current user's username to include their own reaction
       responses:
         "200":
           description: List of comments
@@ -177,6 +191,169 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /comments/{id}/react:
+    post:
+      operationId: reactToComment
+      tags: [comments]
+      summary: Like or dislike a comment (toggles off if same type)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentReactionInput"
+      responses:
+        "200":
+          description: Reaction updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/votes:
+    get:
+      operationId: adminListVotes
+      tags: [admin]
+      summary: List all votes with user and IP info (admin only)
+      parameters:
+        - name: x-admin-username
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: All votes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminVote"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/comments/{id}/star:
+    post:
+      operationId: adminToggleStar
+      tags: [admin]
+      summary: Toggle star on a comment (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAction"
+      responses:
+        "200":
+          description: Star toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminToggleResult"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/comments/{id}/heart:
+    post:
+      operationId: adminToggleHeart
+      tags: [admin]
+      summary: Toggle heart on a comment (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAction"
+      responses:
+        "200":
+          description: Heart toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminToggleResult"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/comments/{id}:
+    delete:
+      operationId: adminDeleteComment
+      tags: [admin]
+      summary: Delete a comment (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAction"
+      responses:
+        "200":
+          description: Comment deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -184,16 +361,21 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required: [success]
 
     User:
       type: object
@@ -205,10 +387,7 @@ components:
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - username
-        - createdAt
+      required: [id, username, createdAt]
 
     UserInput:
       type: object
@@ -217,8 +396,7 @@ components:
           type: string
           minLength: 2
           maxLength: 30
-      required:
-        - username
+      required: [username]
 
     VoteInput:
       type: object
@@ -228,9 +406,7 @@ components:
           enum: [up, down]
         username:
           type: string
-      required:
-        - type
-        - username
+      required: [type, username]
 
     VoteResult:
       type: object
@@ -244,11 +420,7 @@ components:
         nextVoteAt:
           type: string
           format: date-time
-      required:
-        - success
-        - message
-        - stats
-        - nextVoteAt
+      required: [success, message, stats, nextVoteAt]
 
     VoteCooldown:
       type: object
@@ -260,10 +432,7 @@ components:
           format: date-time
         secondsRemaining:
           type: integer
-      required:
-        - error
-        - nextVoteAt
-        - secondsRemaining
+      required: [error, nextVoteAt, secondsRemaining]
 
     VoteStats:
       type: object
@@ -276,11 +445,7 @@ components:
           type: integer
         percentage:
           type: number
-      required:
-        - upvotes
-        - downvotes
-        - total
-        - percentage
+      required: [upvotes, downvotes, total, percentage]
 
     VoteStatus:
       type: object
@@ -294,10 +459,7 @@ components:
           type: integer
         lastVoteType:
           type: ["string", "null"]
-      required:
-        - canVote
-        - nextVoteAt
-        - secondsRemaining
+      required: [canVote, nextVoteAt, secondsRemaining]
 
     Comment:
       type: object
@@ -308,14 +470,20 @@ components:
           type: string
         content:
           type: string
+        likes:
+          type: integer
+        dislikes:
+          type: integer
+        hasStar:
+          type: boolean
+        hasHeart:
+          type: boolean
+        userReaction:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - username
-        - content
-        - createdAt
+      required: [id, username, content, likes, dislikes, hasStar, hasHeart, createdAt]
 
     CommentInput:
       type: object
@@ -326,6 +494,57 @@ components:
           type: string
           minLength: 1
           maxLength: 500
-      required:
-        - username
-        - content
+      required: [username, content]
+
+    CommentReactionInput:
+      type: object
+      properties:
+        username:
+          type: string
+        type:
+          type: string
+          enum: [like, dislike]
+      required: [username, type]
+
+    ReactionResult:
+      type: object
+      properties:
+        action:
+          type: string
+        type:
+          type: ["string", "null"]
+      required: [action]
+
+    AdminVote:
+      type: object
+      properties:
+        id:
+          type: integer
+        ipAddress:
+          type: string
+        username:
+          type: string
+        voteType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, ipAddress, username, voteType, createdAt]
+
+    AdminAction:
+      type: object
+      properties:
+        adminUsername:
+          type: string
+      required: [adminUsername]
+
+    AdminToggleResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        hasStar:
+          type: boolean
+        hasHeart:
+          type: boolean
+      required: [success]

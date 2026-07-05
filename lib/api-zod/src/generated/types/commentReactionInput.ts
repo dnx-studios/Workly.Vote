@@ -5,11 +5,9 @@
  * Workly Game Core API
  * OpenAPI spec version: 0.2.0
  */
+import type { CommentReactionInputType } from './commentReactionInputType';
 
-export interface UserInput {
-  /**
-     * @minLength 2
-     * @maxLength 30
-     */
+export interface CommentReactionInput {
   username: string;
+  type: CommentReactionInputType;
 }

@@ -3,13 +3,12 @@
  * Do not edit manually.
  * Api
  * Workly Game Core API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from 'zod';
 
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -18,7 +17,7 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * @summary Create or retrieve a user by username
+ * @summary Register a new unique username
  */
 export const createUserBodyUsernameMin = 2;
 export const createUserBodyUsernameMax = 30;
@@ -83,7 +82,7 @@ export const GetVoteStatsResponse = zod.object({
 
 
 /**
- * @summary Check if current IP can vote (cooldown status)
+ * @summary Check if current IP can vote
  */
 export const GetVoteStatusResponse = zod.object({
   "canVote": zod.boolean(),
@@ -94,12 +93,21 @@ export const GetVoteStatusResponse = zod.object({
 
 
 /**
- * @summary List all comments
+ * @summary List all comments with reaction counts
  */
+export const ListCommentsQueryParams = zod.object({
+  "username": zod.coerce.string().optional().describe('Current user\'s username to include their own reaction')
+})
+
 export const ListCommentsResponseItem = zod.object({
   "id": zod.number(),
   "username": zod.string(),
   "content": zod.string(),
+  "likes": zod.number(),
+  "dislikes": zod.number(),
+  "hasStar": zod.boolean(),
+  "hasHeart": zod.boolean(),
+  "userReaction": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListCommentsResponse = zod.array(ListCommentsResponseItem)
@@ -121,7 +129,99 @@ export const CreateCommentResponse = zod.object({
   "id": zod.number(),
   "username": zod.string(),
   "content": zod.string(),
+  "likes": zod.number(),
+  "dislikes": zod.number(),
+  "hasStar": zod.boolean(),
+  "hasHeart": zod.boolean(),
+  "userReaction": zod.string().nullish(),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Like or dislike a comment (toggles off if same type)
+ */
+export const ReactToCommentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReactToCommentBody = zod.object({
+  "username": zod.string(),
+  "type": zod.enum(['like', 'dislike'])
+})
+
+export const ReactToCommentResponse = zod.object({
+  "action": zod.string(),
+  "type": zod.string().nullish()
+})
+
+
+/**
+ * @summary List all votes with user and IP info (admin only)
+ */
+export const AdminListVotesHeader = zod.object({
+  "x-admin-username": zod.string()
+})
+
+export const AdminListVotesResponseItem = zod.object({
+  "id": zod.number(),
+  "ipAddress": zod.string(),
+  "username": zod.string(),
+  "voteType": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const AdminListVotesResponse = zod.array(AdminListVotesResponseItem)
+
+
+/**
+ * @summary Toggle star on a comment (admin only)
+ */
+export const AdminToggleStarParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminToggleStarBody = zod.object({
+  "adminUsername": zod.string()
+})
+
+export const AdminToggleStarResponse = zod.object({
+  "success": zod.boolean(),
+  "hasStar": zod.boolean().optional(),
+  "hasHeart": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Toggle heart on a comment (admin only)
+ */
+export const AdminToggleHeartParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminToggleHeartBody = zod.object({
+  "adminUsername": zod.string()
+})
+
+export const AdminToggleHeartResponse = zod.object({
+  "success": zod.boolean(),
+  "hasStar": zod.boolean().optional(),
+  "hasHeart": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Delete a comment (admin only)
+ */
+export const AdminDeleteCommentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminDeleteCommentBody = zod.object({
+  "adminUsername": zod.string()
+})
+
+export const AdminDeleteCommentResponse = zod.object({
+  "success": zod.boolean()
 })
 
 

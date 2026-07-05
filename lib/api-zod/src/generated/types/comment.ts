@@ -3,12 +3,18 @@
  * Do not edit manually.
  * Api
  * Workly Game Core API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export interface Comment {
   id: number;
   username: string;
   content: string;
+  likes: number;
+  dislikes: number;
+  hasStar: boolean;
+  hasHeart: boolean;
+  /** @nullable */
+  userReaction?: string | null;
   createdAt: Date;
 }

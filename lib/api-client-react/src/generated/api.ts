@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Workly Game Core API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import {
   useMutation,
@@ -20,10 +20,17 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminAction,
+  AdminToggleResult,
+  AdminVote,
   Comment,
   CommentInput,
+  CommentReactionInput,
   ErrorResponse,
   HealthStatus,
+  ListCommentsParams,
+  ReactionResult,
+  SuccessResponse,
   User,
   UserInput,
   VoteCooldown,
@@ -69,7 +76,6 @@ export const getHealthCheckUrl = () => {
 }
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
@@ -147,7 +153,7 @@ export const getCreateUserUrl = () => {
 }
 
 /**
- * @summary Create or retrieve a user by username
+ * @summary Register a new unique username
  */
 export const createUser = async (userInput: UserInput, options?: RequestInit): Promise<User> => {
 
@@ -195,7 +201,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateUserMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Create or retrieve a user by username
+ * @summary Register a new unique username
  */
 export const useCreateUser = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createUser>>, TError,{data: BodyType<UserInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -441,7 +447,7 @@ export const getGetVoteStatusUrl = () => {
 }
 
 /**
- * @summary Check if current IP can vote (cooldown status)
+ * @summary Check if current IP can vote
  */
 export const getVoteStatus = async ( options?: RequestInit): Promise<VoteStatus> => {
 
@@ -488,7 +494,7 @@ export type GetVoteStatusQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Check if current IP can vote (cooldown status)
+ * @summary Check if current IP can vote
  */
 
 export function useGetVoteStatus<TData = Awaited<ReturnType<typeof getVoteStatus>>, TError = ErrorType<unknown>>(
@@ -509,20 +515,27 @@ export function useGetVoteStatus<TData = Awaited<ReturnType<typeof getVoteStatus
 
 
 
-export const getListCommentsUrl = () => {
+export const getListCommentsUrl = (params?: ListCommentsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/comments`
+  return stringifiedParams.length > 0 ? `/api/comments?${stringifiedParams}` : `/api/comments`
 }
 
 /**
- * @summary List all comments
+ * @summary List all comments with reaction counts
  */
-export const listComments = async ( options?: RequestInit): Promise<Comment[]> => {
+export const listComments = async (params?: ListCommentsParams, options?: RequestInit): Promise<Comment[]> => {
 
-  return customFetch<Comment[]>(getListCommentsUrl(),
+  return customFetch<Comment[]>(getListCommentsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -535,23 +548,23 @@ export const listComments = async ( options?: RequestInit): Promise<Comment[]> =
 
 
 
-export const getListCommentsQueryKey = () => {
+export const getListCommentsQueryKey = (params?: ListCommentsParams,) => {
     return [
-    `/api/comments`
+    `/api/comments`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listComments>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listComments>>, TError = ErrorType<unknown>>(params?: ListCommentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListCommentsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListCommentsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listComments>>> = ({ signal }) => listComments({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listComments>>> = ({ signal }) => listComments(params, { signal, ...requestOptions });
 
 
 
@@ -565,15 +578,15 @@ export type ListCommentsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List all comments
+ * @summary List all comments with reaction counts
  */
 
 export function useListComments<TData = Awaited<ReturnType<typeof listComments>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListCommentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListCommentsQueryOptions(options)
+  const queryOptions = getListCommentsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -654,5 +667,366 @@ export const useCreateComment = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getCreateCommentMutationOptions(options));
+    }
+
+export const getReactToCommentUrl = (id: number,) => {
+
+
+
+
+  return `/api/comments/${id}/react`
+}
+
+/**
+ * @summary Like or dislike a comment (toggles off if same type)
+ */
+export const reactToComment = async (id: number,
+    commentReactionInput: CommentReactionInput, options?: RequestInit): Promise<ReactionResult> => {
+
+  return customFetch<ReactionResult>(getReactToCommentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(commentReactionInput)
+  }
+);}
+
+
+
+
+export const getReactToCommentMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reactToComment>>, TError,{id: number;data: BodyType<CommentReactionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reactToComment>>, TError,{id: number;data: BodyType<CommentReactionInput>}, TContext> => {
+
+const mutationKey = ['reactToComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reactToComment>>, {id: number;data: BodyType<CommentReactionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reactToComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReactToCommentMutationResult = NonNullable<Awaited<ReturnType<typeof reactToComment>>>
+    export type ReactToCommentMutationBody = BodyType<CommentReactionInput>
+    export type ReactToCommentMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Like or dislike a comment (toggles off if same type)
+ */
+export const useReactToComment = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reactToComment>>, TError,{id: number;data: BodyType<CommentReactionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reactToComment>>,
+        TError,
+        {id: number;data: BodyType<CommentReactionInput>},
+        TContext
+      > => {
+      return useMutation(getReactToCommentMutationOptions(options));
+    }
+
+export const getAdminListVotesUrl = () => {
+
+
+
+
+  return `/api/admin/votes`
+}
+
+/**
+ * @summary List all votes with user and IP info (admin only)
+ */
+export const adminListVotes = async ( options?: RequestInit): Promise<AdminVote[]> => {
+
+  return customFetch<AdminVote[]>(getAdminListVotesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminListVotesQueryKey = () => {
+    return [
+    `/api/admin/votes`
+    ] as const;
+    }
+
+
+export const getAdminListVotesQueryOptions = <TData = Awaited<ReturnType<typeof adminListVotes>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListVotes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListVotesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListVotes>>> = ({ signal }) => adminListVotes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListVotes>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AdminListVotesQueryResult = NonNullable<Awaited<ReturnType<typeof adminListVotes>>>
+export type AdminListVotesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List all votes with user and IP info (admin only)
+ */
+
+export function useAdminListVotes<TData = Awaited<ReturnType<typeof adminListVotes>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof adminListVotes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAdminListVotesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAdminToggleStarUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/comments/${id}/star`
+}
+
+/**
+ * @summary Toggle star on a comment (admin only)
+ */
+export const adminToggleStar = async (id: number,
+    adminAction: AdminAction, options?: RequestInit): Promise<AdminToggleResult> => {
+
+  return customFetch<AdminToggleResult>(getAdminToggleStarUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminAction)
+  }
+);}
+
+
+
+
+export const getAdminToggleStarMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminToggleStar>>, TError,{id: number;data: BodyType<AdminAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminToggleStar>>, TError,{id: number;data: BodyType<AdminAction>}, TContext> => {
+
+const mutationKey = ['adminToggleStar'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminToggleStar>>, {id: number;data: BodyType<AdminAction>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminToggleStar(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminToggleStarMutationResult = NonNullable<Awaited<ReturnType<typeof adminToggleStar>>>
+    export type AdminToggleStarMutationBody = BodyType<AdminAction>
+    export type AdminToggleStarMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Toggle star on a comment (admin only)
+ */
+export const useAdminToggleStar = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminToggleStar>>, TError,{id: number;data: BodyType<AdminAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminToggleStar>>,
+        TError,
+        {id: number;data: BodyType<AdminAction>},
+        TContext
+      > => {
+      return useMutation(getAdminToggleStarMutationOptions(options));
+    }
+
+export const getAdminToggleHeartUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/comments/${id}/heart`
+}
+
+/**
+ * @summary Toggle heart on a comment (admin only)
+ */
+export const adminToggleHeart = async (id: number,
+    adminAction: AdminAction, options?: RequestInit): Promise<AdminToggleResult> => {
+
+  return customFetch<AdminToggleResult>(getAdminToggleHeartUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminAction)
+  }
+);}
+
+
+
+
+export const getAdminToggleHeartMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminToggleHeart>>, TError,{id: number;data: BodyType<AdminAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminToggleHeart>>, TError,{id: number;data: BodyType<AdminAction>}, TContext> => {
+
+const mutationKey = ['adminToggleHeart'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminToggleHeart>>, {id: number;data: BodyType<AdminAction>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminToggleHeart(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminToggleHeartMutationResult = NonNullable<Awaited<ReturnType<typeof adminToggleHeart>>>
+    export type AdminToggleHeartMutationBody = BodyType<AdminAction>
+    export type AdminToggleHeartMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Toggle heart on a comment (admin only)
+ */
+export const useAdminToggleHeart = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminToggleHeart>>, TError,{id: number;data: BodyType<AdminAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminToggleHeart>>,
+        TError,
+        {id: number;data: BodyType<AdminAction>},
+        TContext
+      > => {
+      return useMutation(getAdminToggleHeartMutationOptions(options));
+    }
+
+export const getAdminDeleteCommentUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/comments/${id}`
+}
+
+/**
+ * @summary Delete a comment (admin only)
+ */
+export const adminDeleteComment = async (id: number,
+    adminAction: AdminAction, options?: RequestInit): Promise<SuccessResponse> => {
+
+  return customFetch<SuccessResponse>(getAdminDeleteCommentUrl(id),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(adminAction)
+  }
+);}
+
+
+
+
+export const getAdminDeleteCommentMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDeleteComment>>, TError,{id: number;data: BodyType<AdminAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminDeleteComment>>, TError,{id: number;data: BodyType<AdminAction>}, TContext> => {
+
+const mutationKey = ['adminDeleteComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminDeleteComment>>, {id: number;data: BodyType<AdminAction>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminDeleteComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminDeleteCommentMutationResult = NonNullable<Awaited<ReturnType<typeof adminDeleteComment>>>
+    export type AdminDeleteCommentMutationBody = BodyType<AdminAction>
+    export type AdminDeleteCommentMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete a comment (admin only)
+ */
+export const useAdminDeleteComment = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDeleteComment>>, TError,{id: number;data: BodyType<AdminAction>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminDeleteComment>>,
+        TError,
+        {id: number;data: BodyType<AdminAction>},
+        TContext
+      > => {
+      return useMutation(getAdminDeleteCommentMutationOptions(options));
     }
 
