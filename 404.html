@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Workly Game Core</title>
+  <!--
+    SPA redirect trick for GitHub Pages.
+    When GitHub returns a 404 for a deep path (e.g. /Workly.Vote/some-page),
+    this script encodes the path into the query string and redirects to the
+    root index.html, where a companion script restores the original URL via
+    history.replaceState before React mounts.
+    See: https://github.com/rafgraph/spa-github-pages
+  -->
+  <script>
+    var pathSegmentsToKeep = 1; // Keep "/Workly.Vote" as the base
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') +
+      '/?/' +
+      l.pathname.slice(1 + l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/').length) +
+      (l.search ? '&' + l.search.slice(1) : '') +
+      l.hash
+    );
+  </script>
+</head>
+<body></body>
+</html>
