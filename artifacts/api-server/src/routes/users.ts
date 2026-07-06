@@ -4,10 +4,12 @@ import { eq } from "drizzle-orm";
 
 const router = Router();
 
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? "Dinox";
+
 // Names that cannot be registered by regular users (checked case-insensitively)
 const RESERVED_NAMES = ["dinox", "admin", "sistema", "server", "workly", "dnx"];
 
-// POST /users — register a new unique username
+// POST /users — register a new unique username (or authenticate as admin via PIN)
 router.post("/users", async (req, res) => {
   const { username } = req.body;
 
@@ -16,8 +18,38 @@ router.post("/users", async (req, res) => {
     return;
   }
 
-  // Trim FIRST, then validate length/format
+  // Trim FIRST, then validate
   const sanitized = username.trim();
+
+  // ── Admin PIN flow ──────────────────────────────────────────────────────────
+  // If the user enters the secret admin PIN, return/create the Dinox admin user.
+  // The PIN is stored server-side in ADMIN_PIN env var — never exposed to the client.
+  const ADMIN_PIN = process.env.ADMIN_PIN;
+  if (ADMIN_PIN && sanitized === ADMIN_PIN) {
+    try {
+      const existing = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.username, ADMIN_USERNAME))
+        .limit(1);
+
+      if (existing.length > 0) {
+        const u = existing[0];
+        res.json({ id: u.id, username: u.username, createdAt: u.createdAt.toISOString() });
+      } else {
+        const [newUser] = await db
+          .insert(usersTable)
+          .values({ username: ADMIN_USERNAME })
+          .returning();
+        res.json({ id: newUser.id, username: newUser.username, createdAt: newUser.createdAt.toISOString() });
+      }
+    } catch (err) {
+      console.error("POST /users admin PIN flow error:", err);
+      res.status(500).json({ error: "Error interno del servidor." });
+    }
+    return;
+  }
+  // ───────────────────────────────────────────────────────────────────────────
 
   if (sanitized.length < 2 || sanitized.length > 30) {
     res.status(400).json({ error: "El nombre debe tener entre 2 y 30 caracteres." });
@@ -36,7 +68,6 @@ router.post("/users", async (req, res) => {
   }
 
   try {
-    // Check if username is already taken
     const existing = await db
       .select()
       .from(usersTable)

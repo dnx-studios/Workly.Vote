@@ -11,16 +11,16 @@ export function UsernameModal({ open, onComplete }: { open: boolean; onComplete:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
-    if (trimmed.length < 2 || trimmed.length > 30) {
-      setError('El nombre debe tener entre 2 y 30 caracteres.');
-      return;
-    }
+    if (!trimmed) return;
     setError('');
     createUser.mutate(
       { data: { username: trimmed } },
       {
-        onSuccess: () => {
-          onComplete(trimmed);
+        onSuccess: (data) => {
+          // Always use the username returned by the server.
+          // This allows the server to map special inputs (e.g. admin PIN)
+          // to the correct username without the client knowing the mapping.
+          onComplete(data.username);
         },
         onError: (err: any) => {
           const msg =
@@ -50,7 +50,7 @@ export function UsernameModal({ open, onComplete }: { open: boolean; onComplete:
             </div>
 
             <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-              Elige tu nombre de jugador. Solo letras, números, guiones y guiones bajos.
+              Elige tu nombre de jugador para participar en la comunidad.
             </p>
 
             <div className="flex items-start gap-2 bg-[#e82024]/8 border border-[#e82024]/20 rounded-xl p-3 mb-6">
@@ -82,7 +82,7 @@ export function UsernameModal({ open, onComplete }: { open: boolean; onComplete:
               </div>
               <button
                 type="submit"
-                disabled={createUser.isPending || name.trim().length < 2}
+                disabled={createUser.isPending || !name.trim()}
                 className="w-full py-3.5 rounded-xl bg-[#e82024] hover:bg-[#ff2a2e] text-white font-bold tracking-wider transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(232,32,36,0.25)] hover:shadow-[0_0_30px_rgba(232,32,36,0.45)] uppercase text-sm"
               >
                 {createUser.isPending ? 'Verificando...' : 'Entrar al Núcleo'}
