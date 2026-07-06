@@ -36,7 +36,7 @@ jobs:
           PORT: 3000
           BASE_PATH: /Workly.Vote/
           # API server hosted on Replit — handles votes, comments and auth
-          VITE_API_URL: https://4bfd081b-f3bd-436c-a392-f708b73a7bd5-00-35ta33ayhupqa.kirk.replit.dev/api
+          VITE_API_URL: https://4bfd081b-f3bd-436c-a392-f708b73a7bd5-00-35ta33ayhupqa.kirk.replit.dev
           NODE_ENV: production
 
       - name: Add .nojekyll (prevent Jekyll processing)
