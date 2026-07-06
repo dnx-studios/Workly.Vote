@@ -1,0 +1,2 @@
+- [GitHub push auth](github-push-auth.md) — PAT requiere scopes `repo` + `workflow`; usar con URL embebida, limpiar después
+- [Admin auth HMAC](admin-auth-hmac.md) — auth admin via HMAC(SESSION_SECRET, 'admin:Dinox'); POST /admin/session devuelve token firmado
